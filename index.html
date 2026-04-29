@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocastHQ — Hyperlocal Weather Alerts for Northern Virginia</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --sky:#0b1220;
+  --sky2:#0e1a2e;
+  --blue:#1a6bff;
+  --blue-dim:#0a2a5e;
+  --gray:#5a6a80;
+  --border:rgba(232,240,255,0.1);
+  --white:#f0f4ff;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--sky);
+  color:var(--white);
+  font-family:'DM Sans',sans-serif;
+  font-weight:400;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+.radar-bg{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 80% 20%, rgba(26,107,255,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(26,107,255,0.04) 0%, transparent 50%);
+}
+.radar-ring{
+  position:fixed;border-radius:50%;
+  border:1px solid rgba(26,107,255,0.07);
+  pointer-events:none;z-index:0;
+}
+.r1{width:300px;height:300px;right:-80px;top:15%}
+.r2{width:500px;height:500px;right:-180px;top:5%}
+.r3{width:700px;height:700px;right:-280px;top:-5%}
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.1rem 2rem;
+  background:rgba(11,18,32,0.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.logo{
+  font-family:'DM Serif Display',serif;
+  font-size:1.4rem;color:var(--white);text-decoration:none;
+  display:flex;align-items:center;gap:9px;
+}
+.logo-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--blue);box-shadow:0 0 7px var(--blue);
+  animation:blink 2s ease-in-out infinite;flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+.logo span{color:var(--blue)}
+.nav-links{display:flex;align-items:center;gap:2rem}
+.nav-links a{font-size:0.85rem;color:rgba(240,244,255,0.5);text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--white)}
+.nav-cta{
+  background:var(--blue);color:var(--white);border:none;
+  padding:0.55rem 1.3rem;border-radius:4px;
+  font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:500;
+  cursor:pointer;transition:background 0.2s;text-decoration:none;
+}
+.nav-cta:hover{background:#3a7bff}
+@media(max-width:600px){.nav-links{display:none}}
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+  padding:8rem 2rem 4rem;max-width:1100px;margin:0 auto;position:relative;z-index:1;
+}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:1.8rem;
+  opacity:0;animation:fadeUp 0.6s ease 0.1s forwards;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:blink 1.5s infinite}
+.hero h1{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(3.2rem,9vw,7rem);
+  line-height:1.05;max-width:780px;
+  opacity:0;animation:fadeUp 0.7s ease 0.2s forwards;
+}
+.hero h1 em{font-style:italic;color:var(--blue)}
+.hero-sub{
+  max-width:500px;font-size:1rem;color:rgba(240,244,255,0.58);
+  margin-top:1.8rem;line-height:1.75;font-weight:300;
+  opacity:0;animation:fadeUp 0.7s ease 0.35s forwards;
+}
+.hero-actions{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  margin-top:2.5rem;opacity:0;animation:fadeUp 0.7s ease 0.5s forwards;
+}
+.btn-primary{
+  background:var(--blue);color:var(--white);border:none;
+  padding:0.85rem 1.8rem;border-radius:4px;
+  font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:500;
+  cursor:pointer;transition:background 0.2s,transform 0.15s;
+  text-decoration:none;display:inline-block;
+}
+.btn-primary:hover{background:#3a7bff;transform:translateY(-1px)}
+.btn-secondary{
+  border:1px solid var(--border);color:rgba(240,244,255,0.55);
+  padding:0.85rem 1.8rem;border-radius:4px;
+  font-family:'DM Sans',sans-serif;font-size:0.95rem;
+  cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;background:none;
+}
+.btn-secondary:hover{border-color:var(--blue);color:var(--white)}
+.stats{
+  display:flex;gap:3rem;flex-wrap:wrap;
+  margin-top:5rem;padding-top:2.5rem;border-top:1px solid var(--border);
+  opacity:0;animation:fadeUp 0.7s ease 0.65s forwards;
+}
+.stat-num{font-family:'DM Serif Display',serif;font-size:2.6rem;color:var(--white);line-height:1}
+.stat-num span{color:var(--blue)}
+.stat-label{font-size:0.78rem;color:var(--gray);letter-spacing:0.04em;margin-top:5px}
+.section{max-width:1100px;margin:0 auto;padding:6rem 2rem;position:relative;z-index:1}
+.section-label{font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--blue);margin-bottom:1rem}
+.section-title{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(2rem,4.5vw,3.2rem);
+  line-height:1.12;max-width:560px;margin-bottom:3rem;
+}
+.plan-card{
+  background:var(--sky2);border:1px solid rgba(26,107,255,0.25);
+  border-radius:10px;padding:3rem;max-width:580px;
+}
+.plan-who{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem}
+.plan-tag{
+  font-size:0.73rem;letter-spacing:0.06em;
+  background:var(--blue-dim);color:rgba(240,244,255,0.65);
+  border:1px solid rgba(26,107,255,0.2);padding:4px 12px;border-radius:20px;
+}
+.plan-price{
+  font-family:'DM Serif Display',serif;
+  font-size:3.8rem;color:var(--white);line-height:1;margin-bottom:0.3rem;
+}
+.plan-price span{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:300;color:var(--gray)}
+.plan-desc{font-size:0.9rem;color:rgba(240,244,255,0.5);line-height:1.7;margin-bottom:2rem;font-weight:300}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:0.75rem;margin-bottom:2rem}
+.plan-features li{font-size:0.9rem;color:rgba(240,244,255,0.7);display:flex;gap:10px;align-items:flex-start}
+.plan-features li::before{content:'✓';color:var(--blue);flex-shrink:0;font-weight:500}
+.plan-note{font-size:0.78rem;color:var(--gray);margin-top:1rem}
+.steps-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--border);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;
+}
+@media(max-width:700px){.steps-grid{grid-template-columns:1fr}}
+.step-card{background:var(--sky2);padding:2rem 2.5rem}
+.step-n{font-family:'DM Serif Display',serif;font-size:2.8rem;color:var(--blue-dim);line-height:1;margin-bottom:0.8rem}
+.step-title{font-family:'DM Sans',sans-serif;font-weight:500;font-size:1rem;margin-bottom:0.4rem;color:var(--white)}
+.step-desc{font-size:0.875rem;color:rgba(240,244,255,0.48);line-height:1.75;font-weight:300}
+.trust-section{max-width:1100px;margin:0 auto;padding:0 2rem 6rem;position:relative;z-index:1}
+.trust-inner{
+  background:var(--sky2);border:1px solid var(--border);
+  border-radius:8px;padding:3rem;
+  display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;
+}
+@media(max-width:700px){.trust-inner{grid-template-columns:1fr}}
+.trust-inner h2{font-family:'DM Serif Display',serif;font-size:clamp(1.8rem,3.5vw,2.5rem);line-height:1.15;margin-bottom:1rem}
+.trust-inner p{font-size:0.9rem;color:rgba(240,244,255,0.5);line-height:1.8;font-weight:300}
+.trust-stats{display:flex;flex-direction:column;gap:1rem}
+.trust-stat{
+  padding:1.4rem;background:rgba(26,107,255,0.05);
+  border:1px solid rgba(26,107,255,0.13);border-radius:6px;
+}
+.trust-stat-num{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--white);line-height:1;margin-bottom:4px}
+.trust-stat-num span{color:var(--blue)}
+.trust-stat-label{font-size:0.8rem;color:rgba(240,244,255,0.45);font-weight:300}
+.ig-section{max-width:1100px;margin:0 auto;padding:0 2rem 6rem;position:relative;z-index:1}
+.ig-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:2rem;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;padding:2rem 2.5rem;
+}
+.ig-text h3{font-family:'DM Serif Display',serif;font-size:1.25rem;margin-bottom:0.3rem}
+.ig-text p{font-size:0.85rem;color:rgba(240,244,255,0.45);font-weight:300}
+.ig-btn{
+  background:none;border:1px solid var(--border);color:var(--white);
+  padding:0.65rem 1.4rem;border-radius:4px;
+  font-family:'DM Sans',sans-serif;font-size:0.85rem;
+  cursor:pointer;transition:all 0.2s;text-decoration:none;white-space:nowrap;display:inline-block;
+}
+.ig-btn:hover{border-color:var(--blue);background:rgba(26,107,255,0.08)}
+.form-section{max-width:600px;margin:0 auto;padding:0 2rem 8rem;position:relative;z-index:1}
+.form-inner{background:var(--sky2);border:1px solid rgba(26,107,255,0.2);border-radius:8px;padding:3rem}
+.form-inner h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:0.5rem;line-height:1.15}
+.form-inner > p{color:rgba(240,244,255,0.45);font-size:0.88rem;margin-bottom:2rem;font-weight:300}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.9rem}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray)}
+input,select{
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  color:var(--white);padding:0.7rem 1rem;border-radius:4px;
+  font-family:'DM Sans',sans-serif;font-size:0.9rem;
+  outline:none;transition:border-color 0.2s;width:100%;
+}
+input:focus,select:focus{border-color:var(--blue)}
+select option{background:#0e1a2e}
+.submit-btn{
+  grid-column:1/-1;background:var(--blue);color:var(--white);border:none;
+  padding:0.9rem;border-radius:4px;font-family:'DM Sans',sans-serif;
+  font-size:0.95rem;font-weight:500;cursor:pointer;transition:background 0.2s;margin-top:0.25rem;
+}
+.submit-btn:hover{background:#3a7bff}
+.success{display:none;text-align:center;padding:1rem;color:var(--blue);font-size:0.95rem}
+footer{
+  border-top:1px solid var(--border);padding:2rem;max-width:1100px;margin:0 auto;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:1rem;position:relative;z-index:1;
+}
+.footer-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--gray)}
+.footer-logo span{color:var(--blue)}
+footer p{font-size:0.78rem;color:var(--gray)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="radar-bg"></div>
+<div class="radar-ring r1"></div>
+<div class="radar-ring r2"></div>
+<div class="radar-ring r3"></div>
+
+<nav>
+  <a href="#" class="logo"><div class="logo-dot"></div>Locast<span>HQ</span></a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#trust">About</a>
+    <a href="#get-started">Get alerts</a>
+  </div>
+  <a href="#get-started" class="nav-cta">Get alerts →</a>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow"><div class="live-dot"></div> Loudoun County · Northern Virginia</div>
+  <h1>Weather that's <em>actually</em> local.</h1>
+  <p class="hero-sub">LocastHQ sends you hyperlocal weather alerts year-round — school closure predictions in winter, tornado and severe thunderstorm probabilities in spring, heat and flood alerts in summer. Straight to your phone, explained in plain English, by someone who actually knows this area.</p>
+  <div class="hero-actions">
+    <a href="#get-started" class="btn-primary">Get alerts for $3.99/mo →</a>
+    <a href="#how" class="btn-secondary">See how it works</a>
+  </div>
+  <div class="stats">
+    <div>
+      <div class="stat-num">11<span>K+</span></div>
+      <div class="stat-label">locals trust our free forecasts</div>
+    </div>
+    <div>
+      <div class="stat-num"><span>Since </span>'23</div>
+      <div class="stat-label">forecasting Loudoun County weather</div>
+    </div>
+    <div>
+      <div class="stat-num">&lt;9<span>pm</span></div>
+      <div class="stat-label">closure probabilities — before LCPS announces</div>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="plan">
+  <div class="section-label">The plan</div>
+  <h2 class="section-title">One plan. Everything you need to stay ahead of the weather.</h2>
+  <div class="plan-card">
+    <div class="plan-who">
+      <span class="plan-tag">Parents</span>
+      <span class="plan-tag">Families</span>
+      <span class="plan-tag">Teachers</span>
+      <span class="plan-tag">Students</span>
+    </div>
+    <div class="plan-price">$3.99 <span>/ month</span></div>
+    <p class="plan-desc">Year-round hyperlocal alerts — school closures and winter storms, tornado and severe thunderstorm probabilities in spring, heat indices and flash flood risks in summer, and everything in between. Delivered to your phone with real reasoning behind every call.</p>
+    <ul class="plan-features">
+      <li>School closure &amp; delay <em>probabilities</em> by 9pm the night before</li>
+      <li>Tornado &amp; severe thunderstorm probability alerts — spring through fall</li>
+      <li>Flash flood, heat, and air quality warnings for Loudoun County</li>
+      <li>Winter storm timing, snowfall totals, and ice risk breakdowns</li>
+      <li>Plain-English explanations — not just percentages</li>
+      <li>Direct SMS — no app, no notification buried in your feed</li>
+      <li>Cancel anytime, no commitment</li>
+    </ul>
+    <a href="#get-started" class="btn-primary">Start your free month →</a>
+    <p class="plan-note">First month free. No credit card required to start.</p>
+  </div>
+</div>
+
+<div class="section" id="how" style="padding-top:0">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">Local knowledge. Real meteorology. No algorithm.</h2>
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-n">01</div>
+      <div class="step-title">I study the models every day</div>
+      <div class="step-desc">GFS, NAM, EURO — the same forecast models professionals use, interpreted specifically for Loudoun County's terrain and microclimates that no national app accounts for.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">02</div>
+      <div class="step-title">You get a text, not a notification</div>
+      <div class="step-desc">No app to download. No push notification lost in hundreds of others. A real SMS hits your phone when it matters — before bedtime, before the morning chaos starts.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">03</div>
+      <div class="step-title">Explanations, not just numbers</div>
+      <div class="step-desc">"High chance of 2-hour delay — temps stay borderline until 5am then drop fast. Roads will ice before buses run." Context, not just a percentage with nothing behind it.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-n">04</div>
+      <div class="step-title">Year-round, not just winter</div>
+      <div class="step-desc">Tornado watches in April. Flash flood risks in July. Early frost warnings in October. Snow totals in February. If the weather in Loudoun County is worth knowing about, you'll know about it first.</div>
+    </div>
+  </div>
+</div>
+
+<div class="trust-section" id="trust">
+  <div class="trust-inner">
+    <div>
+      <div class="section-label">Built on trust</div>
+      <h2>Forecasting Loudoun County since September 2023.</h2>
+      <p>LocastHQ is built on the foundation of LCPS.Weather — an Instagram account that has grown to over 11,000 local followers who rely on it for school closure calls, storm updates, and severe weather alerts. That following wasn't bought. It was earned, one correct forecast at a time. LocastHQ is the next step — the same trusted forecasting, delivered directly to your phone.</p>
+    </div>
+    <div class="trust-stats">
+      <div class="trust-stat">
+        <div class="trust-stat-num">11<span>K+</span></div>
+        <div class="trust-stat-label">Loudoun County residents following LCPS.Weather on Instagram</div>
+      </div>
+      <div class="trust-stat">
+        <div class="trust-stat-num">2<span>+ yrs</span></div>
+        <div class="trust-stat-label">Consistently forecasting local closures and severe weather since 2023</div>
+      </div>
+      <div class="trust-stat">
+        <div class="trust-stat-num"><span>Always</span> first</div>
+        <div class="trust-stat-label">When Loudoun has a weather event, LCPS.Weather calls it before anyone else</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ig-section">
+  <div class="ig-inner">
+    <div class="ig-text">
+      <h3>Already follow LCPS.Weather on Instagram?</h3>
+      <p>11,000+ locals get the free forecasts there. LocastHQ is the premium layer — direct to your phone, before anyone else sees it.</p>
+    </div>
+    <a href="https://instagram.com/lcps.weather" target="_blank" class="ig-btn">@lcps.weather ↗</a>
+  </div>
+</div>
+
+<div class="form-section" id="get-started">
+  <div class="form-inner">
+    <h2>Get your first month free.</h2>
+    <p>Fill this out and we'll set you up within 24 hours. No credit card needed to start — just your phone number.</p>
+    <form id="lead-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Your name</label>
+          <input type="text" placeholder="Sarah Johnson" required>
+        </div>
+        <div class="form-group">
+          <label>Phone number</label>
+          <input type="tel" placeholder="(571) 000-0000" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" placeholder="you@email.com" required>
+        </div>
+        <div class="form-group">
+          <label>Zip code</label>
+          <input type="text" placeholder="20164" required>
+        </div>
+        <div class="form-group full">
+          <label>I am a... (optional)</label>
+          <select>
+            <option value="">Select one</option>
+            <option>Parent / guardian</option>
+            <option>Teacher / school staff</option>
+            <option>Student</option>
+            <option>Other Loudoun County resident</option>
+          </select>
+        </div>
+        <button type="submit" class="submit-btn">Claim my free month →</button>
+      </div>
+    </form>
+    <div class="success" id="success-msg">✓ You're in. We'll have you set up within 24 hours — check your phone.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">Locast<span>HQ</span></div>
+  <p>Hyperlocal weather alerts · Loudoun County, Virginia</p>
+  <p>locasthq.com</p>
+</footer>
+
+<script>
+document.getElementById('lead-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  this.style.display = 'none';
+  document.getElementById('success-msg').style.display = 'block';
+});
+</script>
+</body>
+</html>
